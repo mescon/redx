@@ -2,9 +2,16 @@
 
 Mirrors RED2/Lib/DeletionWorker.cs + SystemFunctions.SecureDeleteDirectory.
 Four modes; see config.DeleteMode.
+
+A directory the scanner classified as EMPTY may still hold files that
+match the user's ignore patterns (e.g. ``*.nfo``, ``*.jpg``). The race
+re-check therefore applies those same patterns rather than a plain
+emptiness test, otherwise every such directory would falsely report
+"No longer empty (race)".
 """
 from __future__ import annotations
 
+import fnmatch
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -65,15 +72,34 @@ class Deleter:
         return results
 
     def _delete_one(self, path: Path) -> DeleteResult:
-        # Re-verify emptiness at the moment of deletion (race-safe: RED
-        # does the same in SecureDeleteDirectory).
+        # Re-verify the directory holds nothing the user wants kept.
+        # An entry "blocks" deletion iff it's a real subdir, OR it's a
+        # file that doesn't match any of the user's ignore patterns.
         try:
-            if any(path.iterdir()):
-                return DeleteResult(path, False, "No longer empty (race)")
+            entries = list(path.iterdir())
         except FileNotFoundError:
             return DeleteResult(path, False, "Already gone")
         except OSError as e:
             return DeleteResult(path, False, str(e))
+
+        real_entries: list[Path] = []
+        ignored_files: list[Path] = []
+        for entry in entries:
+            # Order matters: a symlink-to-dir should be treated as a
+            # file-like entry (we never follow), not as a real subdir.
+            if entry.is_symlink():
+                target = ignored_files if self._is_ignored(entry) else real_entries
+                target.append(entry)
+            elif entry.is_dir():
+                # A real subdir means post-order delete missed it, or it
+                # was created mid-run: bail rather than risk data loss.
+                real_entries.append(entry)
+            else:
+                target = ignored_files if self._is_ignored(entry) else real_entries
+                target.append(entry)
+
+        if real_entries:
+            return DeleteResult(path, False, "No longer empty (race)")
 
         mode = self.config.delete_mode
 
@@ -86,6 +112,8 @@ class Deleter:
             mode = DeleteMode.TRASH
 
         if mode == DeleteMode.TRASH:
+            # send2trash moves the directory AND its contents atomically,
+            # so we don't need to pre-delete ignored files here.
             if send2trash is None:
                 return DeleteResult(
                     path, False,
@@ -98,6 +126,14 @@ class Deleter:
                 return DeleteResult(path, False, str(e))
 
         if mode == DeleteMode.DIRECT:
+            # rmdir refuses non-empty dirs, so unlink the ignored files first.
+            for f in ignored_files:
+                try:
+                    f.unlink()
+                except OSError as e:
+                    return DeleteResult(
+                        path, False, f"could not remove {f.name}: {e}"
+                    )
             try:
                 path.rmdir()
                 return DeleteResult(path, True)
@@ -105,3 +141,21 @@ class Deleter:
                 return DeleteResult(path, False, str(e))
 
         return DeleteResult(path, False, f"Unknown mode {mode}")
+
+    def _is_ignored(self, p: Path) -> bool:
+        """Return True if *p* matches the user's ignore patterns.
+
+        Mirrors :meth:`redx.scanner.Scanner._file_is_ignored`. Both must
+        agree, otherwise the scanner classifies a dir as empty but the
+        deleter refuses it (or vice versa).
+        """
+        if self.config.ignore_empty_files:
+            try:
+                if p.lstat().st_size == 0:
+                    return True
+            except OSError:
+                pass
+        for pattern in self.config.ignore_files:
+            if fnmatch.fnmatch(p.name, pattern):
+                return True
+        return False
