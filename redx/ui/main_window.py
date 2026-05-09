@@ -162,7 +162,27 @@ class MainWindow(QMainWindow):
             self._folder_edit.setText(str(self._config.start_folder))
         self._show_full.setChecked(self._settings.show_full_tree)
 
-    # ---------- Persistence on close --------------------------------------------
+    # ---------- Persistence ---------------------------------------------------
+    #
+    # Settings are written to disk in two situations:
+    #   1. closeEvent: graceful window close (X button, app menu Quit).
+    #   2. Every Scan: clicking Scan commits the current UI state, so we
+    #      persist it then. This is what protects us against SIGTERM
+    #      (e.g. ``pkill redx`` from a reinstall script) — closeEvent
+    #      doesn't run on SIGTERM, but anything the user has actually
+    #      run a scan with is already on disk.
+    #
+    # _persist() captures every UI tab into self._config and writes once.
+
+    def _persist(self) -> None:
+        self._filters_tab.apply_to(self._config)
+        self._settings_tab.apply_to(self._config)
+        self._config.delete_mode = self._mode_combo.currentData()
+        if self._folder_edit.text().strip():
+            self._config.start_folder = Path(self._folder_edit.text().strip())
+        self._settings.save_config(self._config)
+        self._settings.show_full_tree = self._show_full.isChecked()
+        self._settings.sync()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         # Cancel any in-flight work so threads finish cleanly.
@@ -170,16 +190,7 @@ class MainWindow(QMainWindow):
             self._scan_worker.cancel()
         if self._delete_worker is not None:
             self._delete_worker.cancel()
-
-        self._filters_tab.apply_to(self._config)
-        self._settings_tab.apply_to(self._config)
-        self._config.delete_mode = self._mode_combo.currentData()
-        if self._folder_edit.text().strip():
-            self._config.start_folder = Path(self._folder_edit.text().strip())
-
-        self._settings.save_config(self._config)
-        self._settings.show_full_tree = self._show_full.isChecked()
-        self._settings.sync()
+        self._persist()
         super().closeEvent(event)
 
     # ---------- Scan flow -------------------------------------------------------
@@ -207,6 +218,10 @@ class MainWindow(QMainWindow):
         self._filters_tab.apply_to(self._config)
         self._settings_tab.apply_to(self._config)
         self._config.start_folder = folder
+        # Persist the moment the user commits to a config by clicking Scan.
+        # Survives SIGTERM-style kills (e.g. install scripts) that bypass
+        # closeEvent.
+        self._persist()
         self._scan_root = None
         self._tree.clear()
         self._scan_btn.setEnabled(False)
