@@ -382,8 +382,16 @@ def run(argv: list[str] | None = None) -> int:
     app = QApplication(argv if argv is not None else sys.argv)
     app.setOrganizationName("redx")
     app.setApplicationName("redx")
-    # App-wide window icon governs taskbar/Wayland window-manager presentation.
-    # Per-window ``setWindowIcon`` in MainWindow.__init__ covers the title bar.
+    # On Wayland (and KDE Plasma in particular), the taskbar/dock icon is
+    # not pulled from setWindowIcon; it's resolved via the running
+    # window's app_id, which Qt sets from setDesktopFileName. Without
+    # this call Plasma falls back to a generic cogwheel because it has
+    # nothing to match the window against. The argument is the desktop
+    # file's base name (no ``.desktop`` suffix).
+    app.setDesktopFileName("redx")
+    # setWindowIcon is still useful as a fallback (X11 _NET_WM_ICON,
+    # title bars on some compositors) and must come AFTER the
+    # QApplication exists.
     app.setWindowIcon(_app_icon())
     win = MainWindow()
     win.show()
