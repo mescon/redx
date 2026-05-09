@@ -109,6 +109,35 @@ def test_iter_deletable_includes_unprotected_sibling_of_protected(tmp_path: Path
     assert tmp_path not in deletable      # protected via up-prop
 
 
+def test_iter_deletable_never_yields_the_scan_root(tmp_path: Path) -> None:
+    """SAFETY: the user's scan target must not be in the deletion list.
+
+    Real-world incident: a user scanned /mnt/.../adult/, every child was
+    classified EMPTY because they only contained ignored files (*.jpg,
+    *.par2), the cascade made the root itself EMPTY, and the deleter's
+    race-check failed in some edge-case path-dependent way. The whole
+    /mnt/.../adult/ directory ended up in trash. The scan root is the
+    user's chosen anchor and must NEVER be a deletion candidate, no
+    matter what its status cascade produces.
+    """
+    # Build a tree where the cascade DOES make the root EMPTY.
+    (tmp_path / "a" / "b").mkdir(parents=True)
+    (tmp_path / "c").mkdir()
+    root = Scanner(Config()).scan(tmp_path)
+    assert root.status is NodeStatus.EMPTY, (
+        "test premise: root must classify EMPTY for the bug to be reproducible"
+    )
+
+    paths = [n.path for n in iter_deletable(root)]
+    assert tmp_path not in paths, (
+        f"scan root {tmp_path} must NEVER appear in iter_deletable; got {paths}"
+    )
+    # Descendants are still deletable (the safety invariant only protects the root)
+    assert (tmp_path / "a") in paths
+    assert (tmp_path / "a" / "b") in paths
+    assert (tmp_path / "c") in paths
+
+
 def test_iter_deletable_post_order(tmp_path: Path) -> None:
     """Deepest-first ordering must survive protection logic."""
     (tmp_path / "a" / "b" / "c").mkdir(parents=True)

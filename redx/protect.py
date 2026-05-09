@@ -53,15 +53,27 @@ def unprotect(node: ScanNode) -> set[ScanNode]:
     return flipped
 
 
-def iter_deletable(node: ScanNode) -> Iterator[ScanNode]:
-    """Yield empty descendants in post-order, skipping protected nodes.
+def iter_deletable(root: ScanNode) -> Iterator[ScanNode]:
+    """Yield empty descendants of *root* in post-order, skipping protected nodes.
 
-    Each node is checked individually: same as RED's deletion pass. Up-
-    propagation has already marked ancestors of protected nodes, so they
-    will be skipped here too. Children of protected ancestors that aren't
-    themselves protected ARE still yielded (they were not user-protected).
+    SAFETY INVARIANT: the scan root itself is NEVER yielded, even when
+    its classification cascade ends up labelling it EMPTY. The user
+    chose that folder as the scan target, not as a deletion candidate;
+    deleting it is almost always wrong (and on at least one occasion
+    has nuked a user's data root). This is a hard-coded "hands off the
+    folder you picked" guarantee that mirrors RED's behaviour.
+
+    Each remaining node is checked individually: same as RED's deletion
+    pass. Up-propagation has already marked ancestors of protected
+    nodes, so they will be skipped here too. Children of protected
+    ancestors that aren't themselves protected ARE still yielded.
     """
+    for child in root.children:
+        yield from _iter_deletable_recursive(child)
+
+
+def _iter_deletable_recursive(node: ScanNode) -> Iterator[ScanNode]:
     for child in node.children:
-        yield from iter_deletable(child)
+        yield from _iter_deletable_recursive(child)
     if node.status is NodeStatus.EMPTY and not node.is_protected:
         yield node
