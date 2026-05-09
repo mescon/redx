@@ -40,10 +40,10 @@ EOF
 chmod +x "$APPDIR/AppRun"
 
 # 4. Top-level .desktop + icon (AppImage convention requires both at AppDir root).
-cp "$REPO_ROOT/packaging/redx.desktop" "$APPDIR/redx.desktop"
-cp "$REPO_ROOT/packaging/redx.svg"     "$APPDIR/redx.svg"
-cp "$REPO_ROOT/packaging/redx.desktop" "$APPDIR/usr/share/applications/redx.desktop"
-cp "$REPO_ROOT/packaging/redx.svg"     "$APPDIR/usr/share/icons/hicolor/scalable/apps/redx.svg"
+cp "$REPO_ROOT/packaging/redx.desktop"     "$APPDIR/redx.desktop"
+cp "$REPO_ROOT/redx/resources/redx.svg"    "$APPDIR/redx.svg"
+cp "$REPO_ROOT/packaging/redx.desktop"     "$APPDIR/usr/share/applications/redx.desktop"
+cp "$REPO_ROOT/redx/resources/redx.svg"    "$APPDIR/usr/share/icons/hicolor/scalable/apps/redx.svg"
 
 # 5. Pack into a single AppImage file.
 APPIMAGETOOL="${APPIMAGETOOL:-/tmp/appimagetool.AppImage}"

@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import sys
+from importlib.resources import files
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Slot
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -43,10 +44,17 @@ _DELETE_MODE_LABELS: dict[DeleteMode, str] = {
 }
 
 
+def _app_icon() -> QIcon:
+    """Load the bundled SVG icon out of the package's resources dir."""
+    path = files("redx").joinpath("resources/redx.svg")
+    return QIcon(str(path))
+
+
 class MainWindow(QMainWindow):
     def __init__(self, settings: Settings | None = None) -> None:
         super().__init__()
         self.setWindowTitle("redx: Remove Empty Directories")
+        self.setWindowIcon(_app_icon())
         self.resize(960, 640)
 
         self._settings = settings if settings is not None else Settings()
@@ -374,6 +382,9 @@ def run(argv: list[str] | None = None) -> int:
     app = QApplication(argv if argv is not None else sys.argv)
     app.setOrganizationName("redx")
     app.setApplicationName("redx")
+    # App-wide window icon governs taskbar/Wayland window-manager presentation.
+    # Per-window ``setWindowIcon`` in MainWindow.__init__ covers the title bar.
+    app.setWindowIcon(_app_icon())
     win = MainWindow()
     win.show()
     event_loop = app.exec

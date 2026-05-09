@@ -55,7 +55,7 @@ rm -rf "$VENV_DIR"
 
 # 4. Launcher symlink, desktop entry, icon.
 ln -sf "$VENV_DIR/bin/redx" "$BIN_DIR/redx"
-install -m 644 "$REPO_ROOT/packaging/redx.svg" "$ICONS_DIR/redx.svg"
+install -m 644 "$REPO_ROOT/redx/resources/redx.svg" "$ICONS_DIR/redx.svg"
 
 DESKTOP="$APPS_DIR/redx.desktop"
 # Use the absolute Exec path so the menu launcher works even if ~/.local/bin
