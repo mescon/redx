@@ -54,6 +54,11 @@ class Deleter:
         self.on_result = on_result
         self.on_confirm = on_confirm
         self._cancel = False
+        # SIMULATE mode pretends every successful delete actually happened.
+        # Subsequent race-checks on parent dirs need to ignore children that
+        # we've already pretended to delete; otherwise post-order cascades
+        # falsely report "No longer empty (race)" for every parent.
+        self._simulated_deleted: set[Path] = set()
 
     def cancel(self) -> None:
         self._cancel = True
@@ -82,6 +87,16 @@ class Deleter:
         except OSError as e:
             return DeleteResult(path, False, str(e))
 
+        # In SIMULATE mode, pretend that previous "successful" deletes in
+        # this run actually removed the directory. Without this filter the
+        # parent of any simulated-deleted child still sees the child via
+        # iterdir() and reports "No longer empty (race)".
+        if (
+            self.config.delete_mode is DeleteMode.SIMULATE
+            and self._simulated_deleted
+        ):
+            entries = [e for e in entries if e not in self._simulated_deleted]
+
         real_entries: list[Path] = []
         ignored_files: list[Path] = []
         for entry in entries:
@@ -104,6 +119,7 @@ class Deleter:
         mode = self.config.delete_mode
 
         if mode == DeleteMode.SIMULATE:
+            self._simulated_deleted.add(path)
             return DeleteResult(path, True)
 
         if mode == DeleteMode.TRASH_CONFIRM:

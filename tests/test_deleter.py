@@ -98,6 +98,34 @@ def test_direct_skips_when_real_subdir_present(tmp_path: Path) -> None:
     assert target.exists()
 
 
+def test_simulate_handles_post_order_cascade(tmp_path: Path) -> None:
+    """SIMULATE must report all five dirs in a/b/c/d/e cascade as 'ok'.
+
+    Real delete modes succeed cumulatively because each rmdir/send2trash
+    physically removes the child, so when the parent's race-check runs
+    the dir is empty for real. SIMULATE doesn't touch the filesystem, so
+    a naive race-check would see the child still present and falsely
+    report "No longer empty (race)" for every parent. The deleter
+    maintains a per-run set of pretend-deleted paths to keep cascades
+    consistent with the scanner's classification.
+    """
+    deepest = tmp_path / "a" / "b" / "c" / "d" / "e"
+    deepest.mkdir(parents=True)
+    cfg = Config(delete_mode=DeleteMode.SIMULATE)
+    # Post-order: deepest first, root last.
+    paths = [
+        deepest,
+        deepest.parent,
+        deepest.parent.parent,
+        deepest.parent.parent.parent,
+        deepest.parent.parent.parent.parent,
+    ]
+    results = Deleter(cfg).delete_all(paths)
+    failed = [(r.path, r.error) for r in results if not r.success]
+    assert not failed, f"unexpected failures in simulate cascade: {failed}"
+    assert deepest.exists(), "simulate must NOT physically delete anything"
+
+
 def test_simulate_does_not_unlink_ignored_files(tmp_path: Path) -> None:
     """Simulate mode must be a true dry-run, even with ignored files present."""
     target = tmp_path / "with_junk"
