@@ -47,6 +47,10 @@ WHEEL=$(ls -1t "$REPO_ROOT"/dist/redx-*-py3-none-any.whl | head -1)
 echo "  built: $(basename "$WHEEL")"
 
 # 3. Runtime venv and install.
+# If redx is currently running, kill it first; otherwise wiping its venv
+# below would leave it in a broken half-state.
+pkill -f "${VENV_DIR}/bin/redx" 2>/dev/null || true
+sleep 0.2
 echo "Installing into $VENV_DIR ..."
 rm -rf "$VENV_DIR"
 "$PY" -m venv "$VENV_DIR"
@@ -63,10 +67,13 @@ DESKTOP="$APPS_DIR/redx.desktop"
 sed -e "s|^Exec=redx\$|Exec=$VENV_DIR/bin/redx|" \
     "$REPO_ROOT/packaging/redx.desktop" > "$DESKTOP"
 
-# 5. Best-effort cache refresh. None of these are required.
+# 5. Best-effort cache refresh. None of these are required, but Plasma
+# in particular caches icon-not-found results in ~/.cache/icon-cache.kcache,
+# so a stale cache makes the cogwheel fallback persist after install.
 update-desktop-database "$APPS_DIR" 2>/dev/null || true
 gtk-update-icon-cache -t -f "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
-kbuildsycoca6 2>/dev/null || true
+rm -f "${HOME}/.cache/icon-cache.kcache"
+kbuildsycoca6 --noincremental 2>/dev/null || true
 
 cat <<EOF
 
