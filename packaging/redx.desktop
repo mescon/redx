@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=redx
+GenericName=Empty Directory Cleaner
+Comment=Find, preview, and delete empty directories
+Exec=redx
+Icon=redx
+Terminal=false
+Categories=Utility;FileTools;Filesystem;Qt;
+Keywords=empty;directory;cleanup;clean;remove;trash;
+StartupWMClass=redx
+StartupNotify=true

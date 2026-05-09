@@ -1,0 +1,46 @@
+# Maintainer: TODO replace before AUR submission
+pkgname=redx
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Find and delete empty directories: Linux port of RED'
+arch=('any')
+url='https://github.com/yi-se/redx'
+license=('LGPL-3.0-or-later')
+depends=(
+    'python'
+    'pyside6'
+    'python-send2trash'
+)
+makedepends=(
+    'python-build'
+    'python-installer'
+    'python-hatchling'
+    'python-wheel'
+)
+# When releasing, replace the source URL with the GitHub tarball:
+#   source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+# For local-tree builds, point at the parent directory instead:
+source=("$pkgname-$pkgver::git+file://$(realpath ..)")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+check() {
+    cd "$srcdir/$pkgname-$pkgver"
+    QT_QPA_PLATFORM=offscreen python -m pytest -q
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+
+    install -Dm644 packaging/redx.desktop \
+        "$pkgdir/usr/share/applications/redx.desktop"
+    install -Dm644 packaging/redx.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/redx.svg"
+    install -Dm644 LICENSE \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

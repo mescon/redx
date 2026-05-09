@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>redx</title>
+  <desc>Empty-directory cleaner — folder with a red X</desc>
+  <path
+    d="M 40 60
+       L 108 60
+       L 124 78
+       L 216 78
+       C 220 78 224 82 224 86
+       L 224 198
+       C 224 202 220 206 216 206
+       L 40 206
+       C 36 206 32 202 32 198
+       L 32 68
+       C 32 64 36 60 40 60 Z"
+    fill="#fff7f5"
+    stroke="#5a1414"
+    stroke-width="7"
+    stroke-linejoin="round"/>
+  <g stroke="#be1e1e" stroke-width="22" stroke-linecap="round" fill="none">
+    <line x1="96" y1="118" x2="164" y2="186"/>
+    <line x1="164" y1="118" x2="96" y2="186"/>
+  </g>
+</svg>

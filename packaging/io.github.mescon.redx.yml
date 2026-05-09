@@ -1,0 +1,46 @@
+# Flatpak manifest for redx (skeleton: refine before submitting to Flathub).
+#
+# Build:   flatpak-builder --user --install --force-clean build-flatpak packaging/io.github.mescon.redx.yml
+# Run:     flatpak run io.github.mescon.redx
+# Submit:  https://docs.flathub.org/docs/for-app-authors/submission
+#
+# Notes:
+# - The org.kde.Platform runtime ships Qt6 + PySide6 bindings, which avoids
+#   the painful task of building PySide6 from source inside the sandbox.
+# - The python3-modules generator script (flatpak-pip-generator) can produce
+#   a python3-modules.json with pinned hashes for send2trash; that file
+#   should be referenced as a separate module before redx itself.
+
+app-id: io.github.mescon.redx
+runtime: org.kde.Platform
+runtime-version: '6.6'
+sdk: org.kde.Sdk
+base: io.qt.qtwebengine.BaseApp
+base-version: '6.6'
+
+command: redx
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  # Need read+delete access across the user's filesystem to actually do the job.
+  - --filesystem=home
+  - --filesystem=host:ro
+  # Trash D-Bus interface for send2trash on freedesktop-spec systems.
+  - --talk-name=org.freedesktop.FileManager1
+
+modules:
+  # TODO: generate python3-modules.json with flatpak-pip-generator for send2trash
+  # and reference it here before the redx module.
+  - name: redx
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --exists-action=i --no-index
+        --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-build-isolation .
+      - install -Dm644 packaging/redx.desktop /app/share/applications/io.github.mescon.redx.desktop
+      - install -Dm644 packaging/redx.svg /app/share/icons/hicolor/scalable/apps/io.github.mescon.redx.svg
+    sources:
+      - type: dir
+        path: ..
