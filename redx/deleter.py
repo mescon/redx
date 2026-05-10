@@ -108,18 +108,24 @@ class Deleter:
         real_entries: list[Path] = []
         ignored_files: list[Path] = []
         for entry in entries:
-            # Order matters: a symlink-to-dir should be treated as a
-            # file-like entry (we never follow), not as a real subdir.
-            if entry.is_symlink():
+            # Symlink-to-anything is treated as a file-like entry: we
+            # never follow them, so they can't carry children, and the
+            # ignore-pattern test on the link's own name is the right
+            # decision point.
+            if _is_symlink_safe(entry):
                 target = ignored_files if self._is_ignored(entry) else real_entries
                 target.append(entry)
-            elif entry.is_dir():
-                # A real subdir means post-order delete missed it, or it
-                # was created mid-run: bail rather than risk data loss.
+                continue
+            # Belt-and-braces subdir detection: if EITHER Path.is_dir or
+            # an independent lstat reports "directory", we refuse. CIFS
+            # under load has been observed to lie via is_dir alone, and
+            # that lie is what enables a parent-rename to take its
+            # surviving children into trash with it.
+            if _is_subdir(entry):
                 real_entries.append(entry)
-            else:
-                target = ignored_files if self._is_ignored(entry) else real_entries
-                target.append(entry)
+                continue
+            target = ignored_files if self._is_ignored(entry) else real_entries
+            target.append(entry)
 
         if real_entries:
             return DeleteResult(path, False, "No longer empty (race)")

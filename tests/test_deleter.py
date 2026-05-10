@@ -98,31 +98,63 @@ def test_direct_skips_when_real_subdir_present(tmp_path: Path) -> None:
     assert target.exists()
 
 
-def test_subdir_detection_falls_back_to_lstat_when_is_dir_lies(
+def test_is_subdir_helper_falls_back_to_lstat(
     tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
 ) -> None:
-    """SAFETY: If Path.is_dir lies (returns False for a real directory),
-    the lstat fallback must still detect the subdir and refuse deletion.
+    """SAFETY: when Path.is_dir lies, lstat S_ISDIR must still catch real dirs.
 
-    Real-world incident: a CIFS-mounted parent was atomically trashed
-    along with surviving child directories because is_dir under load
-    returned False for the children. The dual-check guard is what
-    prevents this from recurring.
+    The previous test used a dir whose name didn't match any ignore
+    pattern, so even with is_dir lying the dir got classified into the
+    "real" bucket via the file-like else branch. That test passed for
+    the wrong reason. This one exercises the helper directly: with
+    is_dir mocked to always return False, _is_subdir on a real
+    directory must still return True via the lstat fallback.
+    """
+    from redx.deleter import _is_subdir
+
+    real_dir = tmp_path / "actual_dir"
+    real_dir.mkdir()
+    real_file = tmp_path / "actual_file"
+    real_file.write_text("not a dir")
+
+    # Honest world.
+    assert _is_subdir(real_dir) is True
+    assert _is_subdir(real_file) is False
+
+    # Mock is_dir to always lie. lstat must save us.
+    monkeypatch.setattr(Path, "is_dir", lambda self, *a, **kw: False)
+    assert _is_subdir(real_dir) is True, (
+        "lstat fallback must classify a real dir as a subdir even when "
+        "Path.is_dir lies"
+    )
+    assert _is_subdir(real_file) is False  # still a regular file
+
+
+def test_subdir_disguised_by_ignore_pattern_name_is_still_blocked(
+    tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+) -> None:
+    """SAFETY: a directory whose name matches an ignore pattern must
+    NOT be treated as an ignored file when is_dir lies.
+
+    Without the lstat fallback, a directory named "thumb.jpg" with
+    is_dir() lying False would fall through to the file-like branch,
+    match the *.jpg ignore pattern, and be classified as ignored.
+    The parent would then be eligible for atomic trashing, taking the
+    misclassified child along.
     """
     target = tmp_path / "parent"
     target.mkdir()
-    (target / "child_subdir").mkdir()  # a real, undeniable directory
+    (target / "thumb.jpg").mkdir()  # a real subdir disguised as a thumbnail
 
-    # Force every Path.is_dir() to lie and report False. Only lstat
-    # remains honest.
     monkeypatch.setattr(Path, "is_dir", lambda self, *a, **kw: False)
 
-    cfg = Config(delete_mode=DeleteMode.DIRECT)
+    cfg = Config(delete_mode=DeleteMode.SIMULATE, ignore_files=["*.jpg"])
     results = Deleter(cfg).delete_all([target])
     assert not results[0].success, (
-        "lstat fallback should have caught the lying is_dir and refused"
+        "simulate must refuse: lstat caught the real subdir even though "
+        "its name matched an ignore pattern and is_dir lied"
     )
-    assert (target / "child_subdir").exists()
+    assert (target / "thumb.jpg").exists()
     assert target.exists()
 
 
