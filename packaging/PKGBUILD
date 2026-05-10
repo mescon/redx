@@ -4,7 +4,7 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc='Find and delete empty directories: Linux port of RED'
 arch=('any')
-url='https://github.com/yi-se/redx'
+url='https://github.com/mescon/redx'
 license=('LGPL-3.0-or-later')
 depends=(
     'python'
