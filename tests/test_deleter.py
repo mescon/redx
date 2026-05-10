@@ -98,6 +98,66 @@ def test_direct_skips_when_real_subdir_present(tmp_path: Path) -> None:
     assert target.exists()
 
 
+def test_subdir_detection_falls_back_to_lstat_when_is_dir_lies(
+    tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+) -> None:
+    """SAFETY: If Path.is_dir lies (returns False for a real directory),
+    the lstat fallback must still detect the subdir and refuse deletion.
+
+    Real-world incident: a CIFS-mounted parent was atomically trashed
+    along with surviving child directories because is_dir under load
+    returned False for the children. The dual-check guard is what
+    prevents this from recurring.
+    """
+    target = tmp_path / "parent"
+    target.mkdir()
+    (target / "child_subdir").mkdir()  # a real, undeniable directory
+
+    # Force every Path.is_dir() to lie and report False. Only lstat
+    # remains honest.
+    monkeypatch.setattr(Path, "is_dir", lambda self, *a, **kw: False)
+
+    cfg = Config(delete_mode=DeleteMode.DIRECT)
+    results = Deleter(cfg).delete_all([target])
+    assert not results[0].success, (
+        "lstat fallback should have caught the lying is_dir and refused"
+    )
+    assert (target / "child_subdir").exists()
+    assert target.exists()
+
+
+def test_subdir_detection_treats_symlink_to_dir_as_file_like(
+    tmp_path: Path
+) -> None:
+    """Symlinks (even to directories) must NOT be treated as subdirs;
+    they get ignore-pattern classification like files."""
+    target = tmp_path / "with_symlink"
+    target.mkdir()
+    real = tmp_path / "external_real"
+    real.mkdir()
+    (target / "linked").symlink_to(real, target_is_directory=True)
+
+    # Without an ignore pattern matching "linked", it counts as real,
+    # blocking deletion. That's correct: a symlink the user didn't
+    # opt into ignoring is a thing they care about.
+    cfg = Config(delete_mode=DeleteMode.DIRECT, ignore_files=[])
+    results = Deleter(cfg).delete_all([target])
+    assert not results[0].success
+    assert target.exists()
+
+    # WITH an ignore pattern matching the link name, the dir is empty
+    # under our rules and the link gets unlinked along with the parent.
+    target2 = tmp_path / "with_symlink_ignored"
+    target2.mkdir()
+    (target2 / "linked").symlink_to(real, target_is_directory=True)
+    cfg = Config(delete_mode=DeleteMode.DIRECT, ignore_files=["linked"])
+    results = Deleter(cfg).delete_all([target2])
+    assert results[0].success
+    assert not target2.exists()
+    # The symlink's target must NOT be touched
+    assert real.exists()
+
+
 def test_simulate_handles_post_order_cascade(tmp_path: Path) -> None:
     """SIMULATE must report all five dirs in a/b/c/d/e cascade as 'ok'.
 

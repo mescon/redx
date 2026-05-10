@@ -8,10 +8,18 @@ match the user's ignore patterns (e.g. ``*.nfo``, ``*.jpg``). The race
 re-check therefore applies those same patterns rather than a plain
 emptiness test, otherwise every such directory would falsely report
 "No longer empty (race)".
+
+Subdirectory detection uses ``Path.is_dir`` AND an independent ``lstat``
+check; either reporting "directory" is treated as conclusive. This is
+defense in depth against an observed CIFS failure mode where
+``is_dir()`` returned False for entries that were in fact directories,
+which let send2trash atomically move a parent and pull its surviving
+children into trash.
 """
 from __future__ import annotations
 
 import fnmatch
+import stat
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -175,3 +183,45 @@ class Deleter:
             if fnmatch.fnmatch(p.name, pattern):
                 return True
         return False
+
+
+def _is_symlink_safe(entry: Path) -> bool:
+    """Is *entry* a symlink? Errors on the side of "yes, treat as a link".
+
+    The follow-up call paths handle symlinks as file-like entries (no
+    recursion). Returning True on stat failure means we don't accidentally
+    treat a stat-broken entry as a directory.
+    """
+    try:
+        return entry.is_symlink()
+    except OSError:
+        return True
+
+
+def _is_subdir(entry: Path) -> bool:
+    """Belt-and-braces "is *entry* a real subdirectory?" check.
+
+    Returns True if EITHER ``Path.is_dir`` or an independent ``os.lstat``
+    + ``S_ISDIR`` reports "directory". On flaky network filesystems,
+    notably CIFS under load, ``is_dir`` alone has been observed to
+    return False for entries that are in fact directories; without this
+    cross-check, send2trash would then atomically move the parent and
+    take the misclassified children with it. We always fail-safe: any
+    error raises True so we refuse to delete the parent.
+    """
+    # Path.is_dir() — primary check.
+    try:
+        if entry.is_dir():
+            return True
+    except OSError:
+        return True
+
+    # lstat-based S_ISDIR — independent confirmation. If is_dir lied,
+    # this catches it. lstat() doesn't follow symlinks, so a symlink to
+    # a dir is correctly NOT classified as a subdir here (the caller
+    # handled the symlink case separately).
+    try:
+        st = entry.lstat()
+    except OSError:
+        return True
+    return stat.S_ISDIR(st.st_mode)
