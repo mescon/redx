@@ -38,6 +38,9 @@ dev = [
 redx = "redx.__main__:main"
 
 [project.urls]
+Homepage = "https://github.com/mescon/redx"
+Source = "https://github.com/mescon/redx"
+Issues = "https://github.com/mescon/redx/issues"
 Upstream = "https://github.com/hxseven/Remove-Empty-Directories"
 
 [tool.hatch.build.targets.wheel]

@@ -145,7 +145,12 @@ class Scanner:
         )
         if not contains_real_files and all_children_empty:
             node.status = NodeStatus.EMPTY
-            self._empty_found += 1
+            # Don't count the scan root in _empty_found. The deleter's
+            # iter_deletable explicitly skips the root for safety, so
+            # counting it here would make progress-event tallies
+            # inconsistent with the actual deletable set (off by one).
+            if depth > 0:
+                self._empty_found += 1
         else:
             node.status = NodeStatus.NOT_EMPTY
 

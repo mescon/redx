@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .. import __version__
 from ..config import Config, DeleteMode
 from ..deleter import DeleteResult
 from ..protect import iter_deletable
@@ -36,11 +37,17 @@ from .tree_widget import ScanTreeWidget
 from .workers import DeleteWorker, ScanWorker
 
 
+# NOTE: DeleteMode.TRASH_CONFIRM is intentionally omitted from the UI
+# dropdown for 0.1.0. The engine supports it (Deleter respects on_confirm)
+# but the worker thread cannot block on a main-thread QMessageBox without
+# a synchronization primitive bridging the two threads. The bare TRASH
+# mode + the single top-level "About to move N files" confirmation cover
+# the same UX without per-file thread-bridging code. Re-introduce when
+# we have a tested cross-thread confirm channel.
 _DELETE_MODE_LABELS: dict[DeleteMode, str] = {
-    DeleteMode.TRASH:         "Move to trash (default)",
-    DeleteMode.TRASH_CONFIRM: "Move to trash, ask each time",
-    DeleteMode.DIRECT:        "Delete permanently (skip trash)",
-    DeleteMode.SIMULATE:      "Simulate (don't delete)",
+    DeleteMode.TRASH:    "Move to trash (default)",
+    DeleteMode.DIRECT:   "Delete permanently (skip trash)",
+    DeleteMode.SIMULATE: "Simulate (don't delete)",
 }
 
 
@@ -53,7 +60,7 @@ def _app_icon() -> QIcon:
 class MainWindow(QMainWindow):
     def __init__(self, settings: Settings | None = None) -> None:
         super().__init__()
-        self.setWindowTitle("redx: Remove Empty Directories")
+        self.setWindowTitle(f"redx {__version__}: Remove Empty Directories")
         self.setWindowIcon(_app_icon())
         self.resize(960, 640)
 
@@ -90,9 +97,15 @@ class MainWindow(QMainWindow):
         tabs.addTab(self._log, "Log")
         self.setCentralWidget(tabs)
 
+        # Help > About so users can see which version they're running
+        # without inspecting the title bar.
+        help_menu = self.menuBar().addMenu("&Help")
+        about_action = help_menu.addAction("&About redx")
+        about_action.triggered.connect(self._on_about)
+
         self._status = QStatusBar()
         self.setStatusBar(self._status)
-        self._status.showMessage("Ready. Pick a folder and click Scan.")
+        self._status.showMessage(f"Ready (redx {__version__}). Pick a folder and click Scan.")
 
     def _build_search_tab(self) -> QWidget:
         w = QWidget()
@@ -185,13 +198,40 @@ class MainWindow(QMainWindow):
         self._settings.sync()
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        # Cancel any in-flight work so threads finish cleanly.
+        # Signal in-flight workers to stop. cancel() only sets a flag;
+        # the threads keep running until they check that flag and
+        # return. If we proceed past super().closeEvent without
+        # waiting, the QApplication tears down while a thread is mid-
+        # iterdir / mid-send2trash, causing a use-after-free crash.
         if self._scan_worker is not None:
             self._scan_worker.cancel()
         if self._delete_worker is not None:
             self._delete_worker.cancel()
+
         self._persist()
+
+        # Wait up to 3s per thread for cancellation to take effect.
+        # Cap is a UX backstop: typical cancels return in <100ms (next
+        # iterdir entry check); 3s catches a worker stuck inside a
+        # network-filesystem syscall without hanging quit indefinitely.
+        for thread in (self._scan_thread, self._delete_thread):
+            if thread is not None and thread.isRunning():
+                thread.wait(3000)
         super().closeEvent(event)
+
+    @Slot()
+    def _on_about(self) -> None:
+        QMessageBox.about(
+            self,
+            "About redx",
+            f"<h3>redx {__version__}</h3>"
+            "<p>Find and delete empty directories on Linux.</p>"
+            "<p>Linux port of "
+            "<a href='https://github.com/hxseven/Remove-Empty-Directories'>RED</a> "
+            "by hxseven.</p>"
+            "<p>License: LGPL-3.0-or-later</p>"
+            "<p><a href='https://github.com/mescon/redx'>github.com/mescon/redx</a></p>",
+        )
 
     # ---------- Scan flow -------------------------------------------------------
 
@@ -379,7 +419,15 @@ class MainWindow(QMainWindow):
         self._log.info(f"Delete finished: {ok} succeeded, {bad} failed.")
         self._scan_btn.setEnabled(True)
         self._cancel_btn.setEnabled(False)
-        self._delete_btn.setEnabled(False)
+        # When at least one succeeded we re-scan, which calls
+        # _update_delete_button after fresh classification. When NOTHING
+        # succeeded the scan tree is still valid (nothing changed on
+        # disk), so refresh the button state from it instead of leaving
+        # the button stuck disabled.
+        if self._config.start_folder is not None and ok > 0:
+            self._on_scan()
+        else:
+            self._update_delete_button()
 
         if bad > 0:
             preview = "\n".join(
@@ -388,9 +436,6 @@ class MainWindow(QMainWindow):
             if bad > 20:
                 preview += f"\n  …and {bad - 20} more"
             QMessageBox.warning(self, "Some deletes failed", preview)
-
-        if self._config.start_folder is not None and ok > 0:
-            self._on_scan()
 
 
 def run(argv: list[str] | None = None) -> int:

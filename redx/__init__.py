@@ -6,4 +6,16 @@ License: LGPL-3.0-or-later
 """
 from __future__ import annotations
 
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    # Authoritative source: the installed wheel's METADATA, which
+    # derives from pyproject.toml's ``version = "..."``. Works for pip,
+    # pipx, AUR, AppImage, Flatpak: any path that goes through a real
+    # install.
+    __version__ = _pkg_version("redx")
+except PackageNotFoundError:
+    # Running directly out of a git checkout that hasn't been
+    # pip-installed (e.g. ``python -m redx`` from the repo root for a
+    # quick dev test). Surface that clearly rather than lying.
+    __version__ = "0.0.0+source"
