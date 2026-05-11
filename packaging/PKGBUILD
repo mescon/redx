@@ -17,11 +17,19 @@ makedepends=(
     'python-hatchling'
     'python-wheel'
 )
-# When releasing, replace the source URL with the GitHub tarball:
-#   source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-# For local-tree builds, point at the parent directory instead:
-source=("$pkgname-$pkgver::git+file://$(realpath ..)")
-sha256sums=('SKIP')
+# AUR submission flow:
+#   1. Tag the release in the project repo:
+#        git tag v$pkgver && git push origin v$pkgver
+#   2. Regenerate sha256sums by running, in this directory:
+#        makepkg -g >> PKGBUILD     # then remove the placeholder line
+#   3. Test locally with `makepkg -si`, then submit to AUR.
+#
+# For dev builds against an untagged local checkout, override the
+# source on the command line, e.g.:
+#   makepkg -si SRCDEST=. \
+#     source=("$pkgname-$pkgver::git+file://$(realpath ..)")
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # TODO: replace with `makepkg -g` output after tagging v$pkgver
 
 build() {
     cd "$srcdir/$pkgname-$pkgver"
