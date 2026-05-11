@@ -23,3 +23,10 @@ dist/
 # Project
 logs/*.log
 tests/sandbox/
+
+# AUR / makepkg build artefacts (produced when running makepkg in packaging/)
+packaging/src/
+packaging/pkg/
+packaging/*.pkg.tar.*
+packaging/redx-*.tar.gz
+packaging/*.log

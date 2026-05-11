@@ -1,4 +1,4 @@
-# Maintainer: TODO replace before AUR submission
+# Maintainer: mescon <mescon@gmail.com>
 pkgname=redx
 pkgver=0.1.0
 pkgrel=1
@@ -16,6 +16,8 @@ makedepends=(
     'python-installer'
     'python-hatchling'
     'python-wheel'
+    'python-pytest'      # check() runs the test suite at build time
+    'python-pytest-qt'   # tests/test_filters_tab.py uses the qtbot fixture
 )
 # AUR submission flow:
 #   1. Tag the release in the project repo:
