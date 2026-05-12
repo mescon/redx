@@ -40,10 +40,23 @@ BUILD_VENV_PARENT="$(mktemp -d)"
 trap 'rm -rf "$BUILD_VENV_PARENT"' EXIT
 "$PY" -m venv "$BUILD_VENV_PARENT/build-venv"
 "$BUILD_VENV_PARENT/build-venv/bin/pip" install --quiet --upgrade pip build hatchling
+
+# Clear stale wheels from prior installs so we end up with exactly one
+# redx-*.whl in dist/. Also keeps shellcheck happy: no need for `ls`
+# sorted by mtime when there's only one candidate.
+rm -f "$REPO_ROOT/dist/"redx-*-py3-none-any.whl
+
 "$BUILD_VENV_PARENT/build-venv/bin/python" -m build \
     --wheel --no-isolation --outdir "$REPO_ROOT/dist" "$REPO_ROOT" >/dev/null
 
-WHEEL=$(ls -1t "$REPO_ROOT"/dist/redx-*-py3-none-any.whl | head -1)
+shopt -s nullglob
+wheels=("$REPO_ROOT/dist"/redx-*-py3-none-any.whl)
+shopt -u nullglob
+if [[ ${#wheels[@]} -eq 0 ]]; then
+    echo "ERROR: build did not produce a wheel" >&2
+    exit 1
+fi
+WHEEL="${wheels[0]}"
 echo "  built: $(basename "$WHEEL")"
 
 # 3. Runtime venv and install.
