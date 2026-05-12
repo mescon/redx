@@ -71,7 +71,13 @@ jobs:
         run: ruff check
 
       - name: pip-audit (CVE check on deps)
-        run: pip-audit --skip-editable
+        # Upgrade pip first so CVE-2026-6357 (fixed in 26.1) drops out.
+        # CVE-2026-3219 is in pip itself with no upstream fix yet —
+        # track it but don't let it block redx's own audits. Re-evaluate
+        # whenever pip ships a fix and remove the --ignore-vuln then.
+        run: |
+          pip install --upgrade pip
+          pip-audit --skip-editable --ignore-vuln CVE-2026-3219
 
   shell:
     name: shellcheck
