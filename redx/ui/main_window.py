@@ -6,7 +6,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Slot
-from PySide6.QtGui import QCloseEvent, QIcon
+from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -28,7 +28,7 @@ from .. import __version__
 from ..config import Config, DeleteMode
 from ..deleter import DeleteResult
 from ..protect import iter_deletable
-from ..scanner import ScanNode, ScanProgress
+from ..scanner import ScanNode, ScanProgress, is_system_path
 from .filters_tab import FiltersTab
 from .log_widget import LogWidget
 from .settings import Settings
@@ -63,6 +63,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"redx {__version__}: Remove Empty Directories")
         self.setWindowIcon(_app_icon())
         self.resize(960, 640)
+        # Accept folder drops onto the whole window so users can drag a
+        # directory from their file manager into redx as the scan target.
+        self.setAcceptDrops(True)
 
         self._settings = settings if settings is not None else Settings()
         self._config = Config()
@@ -219,6 +222,29 @@ class MainWindow(QMainWindow):
                 thread.wait(3000)
         super().closeEvent(event)
 
+    # ---------- Drag & drop folder onto the window ----------------------------
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        md = event.mimeData()
+        if md.hasUrls() and any(u.isLocalFile() for u in md.urls()):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        for url in event.mimeData().urls():
+            if not url.isLocalFile():
+                continue
+            p = Path(url.toLocalFile())
+            # Folder drop: use it directly. File drop: use its parent.
+            target: Path | None = None
+            if p.is_dir():
+                target = p
+            elif p.is_file():
+                target = p.parent
+            if target is not None:
+                self._folder_edit.setText(str(target))
+                event.acceptProposedAction()
+                return
+
     @Slot()
     def _on_about(self) -> None:
         QMessageBox.about(
@@ -253,6 +279,19 @@ class MainWindow(QMainWindow):
         folder = Path(text).expanduser()
         if not folder.is_dir():
             QMessageBox.warning(self, "redx", f"Not a directory:\n{folder}")
+            return
+        # Refuse system / kernel mountpoints. The user almost certainly
+        # didn't intend to scan a pseudo-filesystem; the safer behaviour
+        # is to bounce them with a clear message rather than burn CPU
+        # walking /proc and possibly producing alarming log output.
+        if is_system_path(folder):
+            QMessageBox.warning(
+                self, "redx",
+                f"Refusing to scan system directory:\n{folder}\n\n"
+                "This path is a kernel/boot directory, not user data. "
+                "Pick a folder under your home directory or a mounted "
+                "data volume instead.",
+            )
             return
 
         self._filters_tab.apply_to(self._config)

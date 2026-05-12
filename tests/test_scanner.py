@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from redx.config import Config, NodeStatus
-from redx.scanner import Scanner, iter_empty_descendants
+from redx.scanner import Scanner, is_system_path, iter_empty_descendants
 
 
 def make_tree(root: Path, layout: dict) -> None:
@@ -141,6 +141,39 @@ def test_infinite_loop_threshold_actually_aborts(
         f"got {s._loop_warnings}"
     )
     assert s._cancel, "scanner must trip _cancel once the threshold is reached"
+
+
+def test_is_system_path_blocks_kernel_and_boot_paths() -> None:
+    """SAFETY: redx must refuse to scan kernel pseudo-filesystems and
+    boot mountpoints. Linux analog of RED's KeepSystemFolders.
+    """
+    for blocked in ("/", "/proc", "/sys", "/dev", "/run", "/boot",
+                    "/lost+found"):
+        assert is_system_path(Path(blocked)), (
+            f"{blocked} must be classified as a system path"
+        )
+
+
+def test_is_system_path_permits_user_paths(tmp_path: Path) -> None:
+    assert not is_system_path(tmp_path)
+    assert not is_system_path(Path.home())
+    assert not is_system_path(Path("/tmp"))
+    assert not is_system_path(Path("/usr"))
+
+
+def test_is_system_path_follows_symlinks(tmp_path: Path) -> None:
+    """Resolve symlinks before comparing; a symlink to /proc must be
+    classified as a system path regardless of its own name.
+    """
+    link = tmp_path / "innocuous_looking_name"
+    link.symlink_to("/proc")
+    assert is_system_path(link)
+
+
+def test_is_system_path_handles_missing_paths() -> None:
+    """Non-existent paths return False (the not-a-directory check
+    runs separately and gives its own user-visible error)."""
+    assert not is_system_path(Path("/this/does/not/exist"))
 
 
 def test_progress_callback_fires(tmp_path: Path) -> None:

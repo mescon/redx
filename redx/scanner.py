@@ -206,3 +206,34 @@ def iter_empty_descendants(node: ScanNode) -> Iterator[ScanNode]:
         yield from iter_empty_descendants(child)
     if node.status == NodeStatus.EMPTY:
         yield node
+
+
+# Linux equivalent of RED's KeepSystemFolders: a small frozen set of
+# paths that are owned by the kernel / boot process and have no business
+# being a redx scan target. Scanning them is at best useless (they're
+# pseudo-filesystems with millions of entries) and at worst harmful
+# (a stray send2trash on /proc would do nothing useful and might log
+# alarming errors). We also refuse the filesystem root itself.
+_SYSTEM_PATHS: frozenset[Path] = frozenset({
+    Path("/"),
+    Path("/proc"),
+    Path("/sys"),
+    Path("/dev"),
+    Path("/run"),
+    Path("/boot"),
+    Path("/lost+found"),
+})
+
+
+def is_system_path(path: Path) -> bool:
+    """Return True if *path* is a system directory redx must refuse to scan.
+
+    Resolves symlinks so that e.g. /var/run → /run still trips the
+    guard. Returns False on OS errors (path doesn't exist, permission
+    denied) — those cases are handled elsewhere with their own messages.
+    """
+    try:
+        resolved = path.resolve(strict=False)
+    except OSError:
+        return False
+    return resolved in _SYSTEM_PATHS
