@@ -404,11 +404,12 @@ class MainWindow(QMainWindow):
         if not empties:
             return
 
+        # TRASH_CONFIRM intentionally absent: it's removed from the UI
+        # dropdown until cross-thread confirm-channel wiring lands.
         verb_for = {
-            DeleteMode.TRASH:         f"move {len(empties)} empty directories to trash",
-            DeleteMode.TRASH_CONFIRM: f"move up to {len(empties)} directories to trash (you'll confirm each)",
-            DeleteMode.DIRECT:        f"PERMANENTLY DELETE {len(empties)} empty directories",
-            DeleteMode.SIMULATE:      f"simulate deleting {len(empties)} directories (no changes)",
+            DeleteMode.TRASH:    f"move {len(empties)} empty directories to trash",
+            DeleteMode.DIRECT:   f"PERMANENTLY DELETE {len(empties)} empty directories",
+            DeleteMode.SIMULATE: f"simulate deleting {len(empties)} directories (no changes)",
         }
         ans = QMessageBox.question(
             self, "redx", f"About to {verb_for[self._config.delete_mode]}.\n\nContinue?"

@@ -49,3 +49,23 @@ packages = ["redx"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.ruff]
+# 100 matches the project's existing line conventions; PEP 8's 79 is
+# routinely ignored in modern Python style guides (black uses 88).
+line-length = 100
+
+[tool.ruff.lint]
+# Default + Security ruleset.
+select = ["E", "F", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+# In tests, ``assert`` IS the API (S101) and literal ``"/tmp/foo"`` is
+# a Path placeholder, not actual /tmp filesystem use (S108).
+"tests/*.py" = ["S101", "S108"]
+"tests/**/*.py" = ["S101", "S108"]
+
+[tool.bandit]
+# Bandit by default already skips ``tests`` for its assert_used rule
+# but be explicit so any future config tooling sees the intent.
+exclude_dirs = ["tests", ".venv", "dist", "build"]

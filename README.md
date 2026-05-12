@@ -1,5 +1,10 @@
 # redx
 
+[![CI](https://github.com/mescon/redx/actions/workflows/ci.yml/badge.svg)](https://github.com/mescon/redx/actions/workflows/ci.yml)
+[![License: LGPL-3.0+](https://img.shields.io/badge/License-LGPL_3.0--or--later-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Latest tag](https://img.shields.io/github/v/tag/mescon/redx?label=latest&sort=semver)](https://github.com/mescon/redx/tags)
+
 Find and delete empty directories on Linux.
 
 A small desktop app that scans a folder, shows every empty subdirectory in a colour-coded tree, and lets you delete them safely (to trash by default). You can right-click to protect specific branches, and define rules for what counts as "empty" (for example, "directories containing only `*.txt` files").

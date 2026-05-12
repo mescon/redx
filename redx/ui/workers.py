@@ -12,8 +12,8 @@ from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 
 from ..config import Config
-from ..deleter import Deleter, DeleteResult
-from ..scanner import ScanNode, ScanProgress, Scanner
+from ..deleter import Deleter
+from ..scanner import Scanner
 
 
 class ScanWorker(QObject):
@@ -32,8 +32,14 @@ class ScanWorker(QObject):
 
     def run(self) -> None:
         try:
-            assert self._config.start_folder is not None
-            root = self._scanner.scan(self._config.start_folder)
+            # Don't use assert here: it'd be stripped under python -O,
+            # silently degrading the precondition into a TypeError from
+            # Path(None) deeper in the scanner. Explicit raise keeps the
+            # error message clear regardless of optimisation level.
+            folder = self._config.start_folder
+            if folder is None:
+                raise ValueError("scan launched with no start_folder configured")
+            root = self._scanner.scan(folder)
             self.finished.emit(root)
         except Exception as e:
             self.error.emit(f"{type(e).__name__}: {e}")
