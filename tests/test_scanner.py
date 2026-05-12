@@ -110,23 +110,28 @@ def test_infinite_loop_threshold_actually_aborts(
     incremented an internal counter but never compared it to the
     threshold and never aborted.
 
-    Simulate ENAMETOOLONG on every "loop*" dir and confirm the scanner
-    sets _cancel after exactly `threshold` such errors.
+    Simulate ENAMETOOLONG on a set of marked subdirs (matched by exact
+    path, NOT by substring: pytest's tmp_path name can contain the
+    test's own words, which would otherwise make the root itself
+    trigger the fake error and short-circuit the recursion).
     """
     import errno
     real_scandir = os.scandir
 
+    poisoned: set[str] = set()
+    for i in range(10):
+        d = tmp_path / f"sub{i}"
+        d.mkdir()
+        poisoned.add(str(d))
+
     def fake_scandir(path):
-        if "loop" in str(path):
+        if str(path) in poisoned:
             e = OSError("simulated path too long")
             e.errno = errno.ENAMETOOLONG
             raise e
         return real_scandir(path)
 
     monkeypatch.setattr(os, "scandir", fake_scandir)
-
-    for i in range(10):
-        (tmp_path / f"loop{i}").mkdir()
 
     cfg = Config(infinite_loop_threshold=3)
     s = Scanner(cfg)
