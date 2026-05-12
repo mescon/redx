@@ -40,7 +40,6 @@ class Config:
 
     ignore_empty_files: bool = False
     ignore_hidden_dirs: bool = False
-    keep_system_folders: bool = True
 
     max_depth: int = 200
     min_folder_age_hours: float = 0.0
@@ -48,4 +47,3 @@ class Config:
     pause_between_deletes_ms: int = 0
 
     follow_symlinks: bool = False
-    disable_logging: bool = False

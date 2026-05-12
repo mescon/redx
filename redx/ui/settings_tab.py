@@ -82,8 +82,8 @@ class SettingsTab(QWidget):
         layout.addLayout(button_row)
 
         layout.addWidget(QLabel(
-            "<i><span style='color:gray'>Settings persist automatically when "
-            "the app closes.</span></i>"
+            "<i><span style='color:gray'>Settings persist when you click "
+            "Scan and when the app closes.</span></i>"
         ))
 
     def load_from(self, config: Config) -> None:

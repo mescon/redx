@@ -44,6 +44,7 @@ class Settings:
         self._s.setValue(
             "config/infinite_loop_threshold", config.infinite_loop_threshold
         )
+        self._s.setValue("config/follow_symlinks", config.follow_symlinks)
 
     def load_config(self, config: Config) -> None:
         """Populate *config* in place with persisted values, leaving
@@ -84,6 +85,9 @@ class Settings:
         )
         config.infinite_loop_threshold = self._get_int(
             "config/infinite_loop_threshold", config.infinite_loop_threshold
+        )
+        config.follow_symlinks = self._get_bool(
+            "config/follow_symlinks", config.follow_symlinks
         )
 
     # ---------- View options (not part of Config) -----------------------------

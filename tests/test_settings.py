@@ -89,6 +89,22 @@ def test_load_with_no_persisted_data_keeps_defaults(isolated_qsettings: QSetting
     assert cfg.max_depth == defaults_before[2]
 
 
+def test_follow_symlinks_persists(isolated_qsettings: QSettings) -> None:
+    """Regression: the Settings tab exposes follow_symlinks, and the
+    Settings persistence layer must round-trip it. Earlier versions
+    saved every other Config field but silently dropped this one, so
+    toggling it had no effect across sessions.
+    """
+    s = Settings(isolated_qsettings)
+    cfg_in = Config(follow_symlinks=True)
+    s.save_config(cfg_in)
+    s.sync()
+    cfg_out = Config()
+    assert cfg_out.follow_symlinks is False  # ensure load actually changes it
+    s.load_config(cfg_out)
+    assert cfg_out.follow_symlinks is True
+
+
 def test_view_options_persist(isolated_qsettings: QSettings) -> None:
     s = Settings(isolated_qsettings)
     assert s.show_full_tree is False  # default

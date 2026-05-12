@@ -49,7 +49,6 @@ The **Log** tab keeps a running record of every action with timestamps.
 | Mode                           | What it does                                           |
 |--------------------------------|--------------------------------------------------------|
 | Move to trash *(default)*      | Sends folders to your desktop trash. Recoverable.      |
-| Move to trash, ask each time   | Same, but prompts before each folder.                  |
 | Delete permanently             | Bypasses trash. Faster, but unrecoverable.             |
 | Simulate                       | Pretends to delete. Nothing changes. Use to preview.   |
 

@@ -8,6 +8,7 @@ The class is deliberately single-threaded so it can be driven from a
 """
 from __future__ import annotations
 
+import errno
 import fnmatch
 import os
 from collections.abc import Callable, Iterator
@@ -99,9 +100,23 @@ class Scanner:
             node.error = f"Permission denied: {e}"
             return
         except OSError as e:
-            self._loop_warnings += 1
             node.status = NodeStatus.ERROR
             node.error = str(e)
+            # ENAMETOOLONG and ELOOP are the signature of a filesystem
+            # loop (almost always a self-referential symlink, possibly
+            # via a network mount). Count them; once we exceed the
+            # user's threshold we set _cancel so all remaining
+            # recursion bails out fast rather than churning forever.
+            if e.errno in (errno.ENAMETOOLONG, errno.ELOOP):
+                self._loop_warnings += 1
+                threshold = self.config.infinite_loop_threshold
+                if threshold > 0 and self._loop_warnings >= threshold:
+                    node.error = (
+                        f"Aborted: hit {self._loop_warnings} path-length / "
+                        f"symlink-loop errors (threshold={threshold}). "
+                        "Likely a circular symlink."
+                    )
+                    self._cancel = True
             return
 
         contains_real_files = False

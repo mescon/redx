@@ -102,6 +102,42 @@ def test_dir_empty_when_only_ignored_files(tmp_path: Path) -> None:
     assert project.status is NodeStatus.NOT_EMPTY  # src holds it
 
 
+def test_infinite_loop_threshold_actually_aborts(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """SAFETY: the Settings-tab tooltip claims the threshold "aborts the
+    scan" after N path-too-long errors. Until this test, the scanner
+    incremented an internal counter but never compared it to the
+    threshold and never aborted.
+
+    Simulate ENAMETOOLONG on every "loop*" dir and confirm the scanner
+    sets _cancel after exactly `threshold` such errors.
+    """
+    import errno
+    real_scandir = os.scandir
+
+    def fake_scandir(path):
+        if "loop" in str(path):
+            e = OSError("simulated path too long")
+            e.errno = errno.ENAMETOOLONG
+            raise e
+        return real_scandir(path)
+
+    monkeypatch.setattr(os, "scandir", fake_scandir)
+
+    for i in range(10):
+        (tmp_path / f"loop{i}").mkdir()
+
+    cfg = Config(infinite_loop_threshold=3)
+    s = Scanner(cfg)
+    s.scan(tmp_path)
+    assert s._loop_warnings == 3, (
+        f"expected exactly threshold-many warnings before abort, "
+        f"got {s._loop_warnings}"
+    )
+    assert s._cancel, "scanner must trip _cancel once the threshold is reached"
+
+
 def test_progress_callback_fires(tmp_path: Path) -> None:
     # 250 dirs to cross the every-100 threshold a couple of times.
     for i in range(250):
