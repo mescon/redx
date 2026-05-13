@@ -18,6 +18,7 @@ VENV_DIR="${INSTALL_DIR}/venv"
 BIN_DIR="${HOME}/.local/bin"
 APPS_DIR="${HOME}/.local/share/applications"
 ICONS_DIR="${HOME}/.local/share/icons/hicolor/scalable/apps"
+PIXMAPS_DIR="${HOME}/.local/share/pixmaps"
 
 # 1. Sanity-check Python.
 PY="${PYTHON:-python3}"
@@ -32,7 +33,7 @@ if [[ "$PY_MAJOR" -lt 3 || ( "$PY_MAJOR" -eq 3 && "$PY_MINOR" -lt 11 ) ]]; then
 fi
 echo "Using Python $PY_MAJOR.$PY_MINOR at $(command -v "$PY")"
 
-mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APPS_DIR" "$ICONS_DIR"
+mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APPS_DIR" "$ICONS_DIR" "$PIXMAPS_DIR"
 
 # 2. Build the wheel in a throwaway venv so we don't touch the user's site-packages.
 echo "Building wheel..."
@@ -99,6 +100,16 @@ TMP_ICON="$(mktemp "${ICONS_DIR}/.redx-install.icon.XXXXXX")"
 cp -f "$REPO_ROOT/redx/resources/redx.svg" "$TMP_ICON"
 chmod 644 "$TMP_ICON"
 mv -f "$TMP_ICON" "$ICON"
+
+# Also install to ~/.local/share/pixmaps. This is the legacy XDG icon
+# fallback that does NOT require icon-theme cache indexing, which on
+# its own happily ignores SVGs in scalable/apps/. Without this dup
+# gnome-shell on Wayland may show a generic icon even though the SVG
+# is present in the theme directory.
+TMP_PIXMAP="$(mktemp "${PIXMAPS_DIR}/.redx-install.icon.XXXXXX")"
+cp -f "$REPO_ROOT/redx/resources/redx.svg" "$TMP_PIXMAP"
+chmod 644 "$TMP_PIXMAP"
+mv -f "$TMP_PIXMAP" "$PIXMAPS_DIR/redx.svg"
 
 # `ln -sf` does unlink+symlink, briefly making the launcher absent.
 # Doing it via tempname + rename keeps the path always-valid.

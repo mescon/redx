@@ -5,7 +5,7 @@ import sys
 from importlib.resources import files
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Slot
+from PySide6.QtCore import Qt, QThread, Slot
 from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -98,13 +98,17 @@ class MainWindow(QMainWindow):
         tabs.addTab(self._filters_tab, "Filters")
         tabs.addTab(self._settings_tab, "Settings")
         tabs.addTab(self._log, "Log")
-        self.setCentralWidget(tabs)
 
-        # Help > About so users can see which version they're running
-        # without inspecting the title bar.
-        help_menu = self.menuBar().addMenu("&Help")
-        about_action = help_menu.addAction("&About redx")
-        about_action.triggered.connect(self._on_about)
+        # About button lives on the tab-bar's right edge instead of in
+        # a separate menubar. setCornerWidget puts a widget in the
+        # corner of QTabWidget's tab bar — visually it sits to the
+        # right of the rightmost tab.
+        about_btn = QPushButton("About")
+        about_btn.setFlat(True)
+        about_btn.clicked.connect(self._on_about)
+        tabs.setCornerWidget(about_btn, Qt.Corner.TopRightCorner)
+
+        self.setCentralWidget(tabs)
 
         self._status = QStatusBar()
         self.setStatusBar(self._status)
@@ -135,7 +139,7 @@ class MainWindow(QMainWindow):
 
         # View toggle row
         view_row = QHBoxLayout()
-        self._show_full = QCheckBox("Show full tree (matches RED, slower for big scans)")
+        self._show_full = QCheckBox("Show full tree (slower for big scans)")
         self._show_full.toggled.connect(self._on_show_full_toggled)
         view_row.addWidget(self._show_full)
         view_row.addStretch(1)
@@ -252,9 +256,6 @@ class MainWindow(QMainWindow):
             "About redx",
             f"<h3>redx {__version__}</h3>"
             "<p>Find and delete empty directories on Linux.</p>"
-            "<p>Linux port of "
-            "<a href='https://github.com/hxseven/Remove-Empty-Directories'>RED</a> "
-            "by hxseven.</p>"
             "<p>License: LGPL-3.0-or-later</p>"
             "<p><a href='https://github.com/mescon/redx'>github.com/mescon/redx</a></p>",
         )

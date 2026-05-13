@@ -6,6 +6,7 @@ rm -rf  "${HOME}/.local/share/redx"
 rm -f   "${HOME}/.local/bin/redx"
 rm -f   "${HOME}/.local/share/applications/redx.desktop"
 rm -f   "${HOME}/.local/share/icons/hicolor/scalable/apps/redx.svg"
+rm -f   "${HOME}/.local/share/pixmaps/redx.svg"
 
 update-desktop-database "${HOME}/.local/share/applications" 2>/dev/null || true
 gtk-update-icon-cache -t -f "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
