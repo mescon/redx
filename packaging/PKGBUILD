@@ -31,7 +31,7 @@ makedepends=(
 #   makepkg -si SRCDEST=. \
 #     source=("$pkgname-$pkgver::git+file://$(realpath ..)")
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('a678c7fff67022f7e167964236a73d6b119d8410ab0e37c5a4716b52ff6413ca')
+sha256sums=('e162b97ab1239c9b506c12f088faf88071943cdda42b4dff029492192a004fc1')
 
 build() {
     cd "$srcdir/$pkgname-$pkgver"
