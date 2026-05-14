@@ -64,7 +64,43 @@ def test_ignore_empty_files_toggle(tmp_path: Path) -> None:
     off = Scanner(Config()).scan(tmp_path)
     assert off.children[0].status is NodeStatus.NOT_EMPTY
     on = Scanner(Config(ignore_empty_files=True)).scan(tmp_path)
-    assert on.children[0].status is NodeStatus.EMPTY
+    a = on.children[0]
+    assert a.status is NodeStatus.EMPTY
+    # The zero-byte file should land in empty_file_count, NOT
+    # ignored_file_count (there are no ignore_files patterns set).
+    assert a.empty_file_count == 1
+    assert a.ignored_file_count == 0
+
+
+def test_pattern_match_and_zero_byte_counts_split(tmp_path: Path) -> None:
+    """Both rules can fire in the same directory. The UI shows both
+    counts distinctly, so the scanner must keep them separate.
+    """
+    make_tree(tmp_path, {
+        "mixed": {
+            "thumb.jpg": "real bytes here",  # pattern-match, non-empty
+            "marker.dat": None,              # zero-byte, no pattern match
+        },
+    })
+    cfg = Config(ignore_files=["*.jpg"], ignore_empty_files=True)
+    root = Scanner(cfg).scan(tmp_path)
+    m = root.children[0]
+    assert m.status is NodeStatus.EMPTY
+    assert m.ignored_file_count == 1, "thumb.jpg should be ignored"
+    assert m.empty_file_count == 1,   "marker.dat should be empty"
+
+
+def test_zero_byte_file_matching_pattern_counts_as_empty(tmp_path: Path) -> None:
+    """When both rules would match the same file, the more specific
+    one wins: zero-byte (a literal property) takes precedence over
+    pattern-match (a user name rule).
+    """
+    make_tree(tmp_path, {"d": {"placeholder.jpg": None}})  # 0 bytes AND *.jpg
+    cfg = Config(ignore_files=["*.jpg"], ignore_empty_files=True)
+    d = Scanner(cfg).scan(tmp_path).children[0]
+    assert d.status is NodeStatus.EMPTY
+    assert d.empty_file_count == 1
+    assert d.ignored_file_count == 0
 
 
 def test_symlink_not_followed(tmp_path: Path) -> None:

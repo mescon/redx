@@ -28,12 +28,17 @@ class ScanNode:
     status: NodeStatus = NodeStatus.NOT_EMPTY
     children: list["ScanNode"] = field(default_factory=list)
     error: str | None = None
-    # Count of files inside this directory that the scanner treated as
-    # "doesn't block emptiness" — i.e. files matched by ignore_files
-    # patterns, or zero-byte files when ignore_empty_files is True. The
-    # name "empty" used to live here and was misleading: a 4 MB JPEG
-    # matched by ``*.jpg`` is ignored, not empty.
+    # Two reasons a file doesn't block emptiness, counted separately
+    # so the UI can label them distinctly:
+    #   - ignored_file_count: matched the user's ignore_files patterns
+    #     (any size, any content; an explicit-rule match)
+    #   - empty_file_count:   literally zero bytes, when the
+    #     ignore_empty_files toggle is on (a file-property match)
+    # Precedence is zero-byte first: a 0-byte .jpg counts as empty,
+    # not ignored, because the literal property is more specific than
+    # the user's name-based rule.
     ignored_file_count: int = 0
+    empty_file_count: int = 0
     is_protected: bool = False
     parent: "ScanNode | None" = field(default=None, repr=False)
 
@@ -136,7 +141,10 @@ class Scanner:
             if is_dir:
                 subdir_entries.append(entry)
                 continue
-            if self._file_is_ignored(entry):
+            kind = self._classify_non_dir(entry)
+            if kind == "empty":
+                node.empty_file_count += 1
+            elif kind == "ignored":
                 node.ignored_file_count += 1
             else:
                 contains_real_files = True
@@ -183,16 +191,29 @@ class Scanner:
             ))
 
     def _file_is_ignored(self, entry: os.DirEntry[str]) -> bool:
+        # Kept for callers that only need the boolean (does this file
+        # block emptiness?). For the per-count split, use
+        # _classify_non_dir instead.
+        return self._classify_non_dir(entry) != "real"
+
+    def _classify_non_dir(self, entry: os.DirEntry[str]) -> str:
+        """Return ``'empty'``, ``'ignored'``, or ``'real'`` for a non-dir entry.
+
+        Precedence: zero-byte (when the toggle is on) first, then
+        pattern match, then real. A 0-byte file matched by ``*.jpg``
+        counts as ``empty`` rather than ``ignored`` — the literal
+        property is more specific than the user's name-based rule.
+        """
         if self.config.ignore_empty_files:
             try:
                 if entry.stat(follow_symlinks=False).st_size == 0:
-                    return True
+                    return "empty"
             except OSError:
                 pass
         for pattern in self.config.ignore_files:
             if fnmatch.fnmatch(entry.name, pattern):
-                return True
-        return False
+                return "ignored"
+        return "real"
 
     def _dir_is_ignored(self, name: str) -> bool:
         for pattern in self.config.ignore_dirs:
