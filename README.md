@@ -81,7 +81,7 @@ git clone https://github.com/mescon/redx.git
 cd redx
 python -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
-QT_QPA_PLATFORM=offscreen pytest    # 39 tests
+QT_QPA_PLATFORM=offscreen pytest    # 56 tests
 python -m redx                      # launch from source
 ```
 
@@ -96,7 +96,7 @@ redx/                       Engine + Qt UI (~2000 LoC)
 ├── ui/                     PySide6 widgets (main window, four tabs, tree)
 └── __main__.py             python -m redx and the installed redx script
 
-tests/                      39 tests
+tests/                      56 tests
 ├── sandbox_builder.py      Builds the test sandbox
 └── sandbox/                Generated, gitignored, 12 cases
 
