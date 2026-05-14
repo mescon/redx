@@ -54,7 +54,11 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         # Isolated QSettings: never write to the user's real config.
         qs = QSettings(str(Path(td) / "screenshot.ini"), QSettings.Format.IniFormat)
-        app = QApplication(sys.argv)
+        # Underscore prefix marks the QApplication as intentionally
+        # kept-but-unreferenced: PySide6 needs the Python-side handle
+        # alive for the lifetime of any widget it owns, but we don't
+        # call any method on it directly past construction.
+        _app = QApplication(sys.argv)
         win = MainWindow(settings=Settings(qs))
         win.show()  # offscreen no-op visually but triggers showEvent + layout
         QApplication.processEvents()
