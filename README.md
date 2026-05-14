@@ -41,7 +41,7 @@ To uninstall:
 
 ## Use
 
-1. Click **Browse** and pick a folder.
+1. Click **Browse** and pick a folder. (You can also drag a folder onto the window from your file manager.)
 2. Click **Scan**. Empty directories show up in red.
 3. *(Optional)* Open the **Filters** tab and add patterns. For example, `*.tmp` on its own line means "directories containing only .tmp files count as empty".
 4. *(Optional)* Right-click any folder in the tree, choose **Protect**, to keep it. Protected folders turn blue. Right-click again to **Unprotect**.
