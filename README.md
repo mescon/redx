@@ -11,9 +11,29 @@ A small desktop app that scans a folder, shows every empty subdirectory in a col
 
 This is a Linux port of the Windows app [RED (Remove-Empty-Directories)](https://github.com/hxseven/Remove-Empty-Directories), written in Python with PySide6 (Qt 6). Runs on KDE, GNOME, XFCE, Sway, and any other Linux desktop.
 
+## Screenshots
+
+Scan results — empty directories in red, mixed parents in gray, count of "ignored" or "empty" files annotated next to the folder name:
+
+![Scan result](screenshots/main-window.png)
+
+Filters — glob-style ignore patterns for files and directories, plus a "treat zero-byte files as empty" toggle:
+
+![Filters tab](screenshots/filters-tab.png)
+
 ## Install
 
-You need **Python 3.11 or newer**. That's it. No sudo. No system-wide pollution.
+### Arch, CachyOS, Manjaro, EndeavourOS, Garuda — via AUR
+
+```bash
+yay -S redx       # or paru -S redx, or any AUR helper
+```
+
+The package is at [aur.archlinux.org/packages/redx](https://aur.archlinux.org/packages/redx). It pulls the source at the latest tagged release, builds the wheel, runs the test suite during build, and installs system-wide via pacman.
+
+### Any other Linux — from source
+
+You need **Python 3.11 or newer**. No sudo, no system-wide pollution.
 
 ```bash
 git clone https://github.com/mescon/redx.git
@@ -29,14 +49,15 @@ To uninstall:
 ./uninstall.sh
 ```
 
-### Where things go
+#### Where things go (source install)
 
 | Path                                                    | What                                |
 |---------------------------------------------------------|-------------------------------------|
-| `~/.local/share/redx/venv/`                             | Private Python venv with the app   |
+| `~/.local/share/redx/venv/`                             | Private Python venv with the app    |
 | `~/.local/bin/redx`                                     | Optional terminal launcher         |
 | `~/.local/share/applications/redx.desktop`              | App menu entry                     |
 | `~/.local/share/icons/hicolor/scalable/apps/redx.svg`   | Icon                               |
+| `~/.local/share/pixmaps/redx.svg`                       | Icon fallback (broader shell support) |
 | `~/.config/redx/redx.conf`                              | Settings (created on first close)  |
 
 ## Use
