@@ -69,9 +69,8 @@ Then in the GUI: **Browse** > pick `tests/sandbox` > **Scan**.
 
 ## Other install options
 
-- **Arch / CachyOS / Manjaro**: `cd packaging && makepkg -si`
 - **AppImage** (single portable file): see [`packaging/README.md`](packaging/README.md)
-- **Flatpak**: manifest at `packaging/se.yi.redx.yml` (skeleton)
+- **Flatpak**: manifest at `packaging/io.github.mescon.redx.yml` (skeleton — needs `flatpak-pip-generator` polish before Flathub submission)
 - **PyPI**: not yet published
 
 ## Development
