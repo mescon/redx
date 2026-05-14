@@ -112,13 +112,14 @@ def test_iter_deletable_includes_unprotected_sibling_of_protected(tmp_path: Path
 def test_iter_deletable_never_yields_the_scan_root(tmp_path: Path) -> None:
     """SAFETY: the user's scan target must not be in the deletion list.
 
-    Real-world incident: a user scanned /mnt/.../adult/, every child was
-    classified EMPTY because they only contained ignored files (*.jpg,
-    *.par2), the cascade made the root itself EMPTY, and the deleter's
-    race-check failed in some edge-case path-dependent way. The whole
-    /mnt/.../adult/ directory ended up in trash. The scan root is the
-    user's chosen anchor and must NEVER be a deletion candidate, no
-    matter what its status cascade produces.
+    Real-world incident regressed-against here: a directory was scanned
+    whose direct children all classified EMPTY (because they contained
+    only files matched by the user's ignore patterns), the cascade rule
+    then made the root itself EMPTY, and the deleter's race-check
+    failed in an edge-case path-dependent way on a network filesystem.
+    The whole scan-root directory ended up in trash. The scan root is
+    the user's chosen anchor and must NEVER be a deletion candidate,
+    no matter what the status cascade produces.
     """
     # Build a tree where the cascade DOES make the root EMPTY.
     (tmp_path / "a" / "b").mkdir(parents=True)
