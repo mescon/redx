@@ -1,46 +1,81 @@
-# Flatpak manifest for redx (skeleton: refine before submitting to Flathub).
+# Flatpak manifest for redx.
 #
-# Build:   flatpak-builder --user --install --force-clean build-flatpak packaging/io.github.mescon.redx.yml
-# Run:     flatpak run io.github.mescon.redx
-# Submit:  https://docs.flathub.org/docs/for-app-authors/submission
+# Local build:
+#   flatpak install -y flathub org.kde.Sdk//6.10 org.kde.Platform//6.10
+#   flatpak-builder --user --install --force-clean build-flatpak packaging/io.github.mescon.redx.yml
+#   flatpak run io.github.mescon.redx
 #
-# Notes:
-# - The org.kde.Platform runtime ships Qt6 + PySide6 bindings, which avoids
-#   the painful task of building PySide6 from source inside the sandbox.
-# - The python3-modules generator script (flatpak-pip-generator) can produce
-#   a python3-modules.json with pinned hashes for send2trash; that file
-#   should be referenced as a separate module before redx itself.
+# Flathub submission:
+#   https://docs.flathub.org/docs/for-app-authors/submission/
+#
+# The org.kde.Platform runtime ships Qt6 + PySide6, so we don't need to
+# build PySide6 from source. We still need to provide:
+#   * send2trash    (only non-runtime Python dep, via python3-send2trash.json)
+#   * hatchling     (build-time only, via python3-build-deps.json)
 
 app-id: io.github.mescon.redx
 runtime: org.kde.Platform
-runtime-version: '6.6'
+runtime-version: '6.10'
 sdk: org.kde.Sdk
-base: io.qt.qtwebengine.BaseApp
-base-version: '6.6'
 
 command: redx
 
 finish-args:
+  # Standard graphical-app permissions
   - --share=ipc
   - --socket=fallback-x11
   - --socket=wayland
   - --device=dri
-  # Need read+delete access across the user's filesystem to actually do the job.
+  # Scan + delete needs to see and modify the user's files. Read-only
+  # to host so we don't accidentally walk system directories the
+  # scanner already refuses anyway.
   - --filesystem=home
   - --filesystem=host:ro
   # Trash D-Bus interface for send2trash on freedesktop-spec systems.
   - --talk-name=org.freedesktop.FileManager1
 
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+  - '*.la'
+  - '*.a'
+  # The hatchling build deps are only needed at build time; strip
+  # them from the runtime image so the published Flatpak stays small.
+  - /lib/python3.*/site-packages/hatchling*
+  - /lib/python3.*/site-packages/pathspec*
+  - /lib/python3.*/site-packages/pluggy*
+  - /lib/python3.*/site-packages/trove_classifiers*
+
 modules:
-  # TODO: generate python3-modules.json with flatpak-pip-generator for send2trash
-  # and reference it here before the redx module.
+  # Build-time only: hatchling so pip install . can build redx's wheel.
+  - python3-build-deps.json
+
+  # Runtime: send2trash for the XDG-spec trash backend.
+  - python3-send2trash.json
+
   - name: redx
     buildsystem: simple
     build-commands:
-      - pip3 install --verbose --exists-action=i --no-index
-        --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-build-isolation .
-      - install -Dm644 packaging/redx.desktop /app/share/applications/io.github.mescon.redx.desktop
-      - install -Dm644 packaging/redx.svg /app/share/icons/hicolor/scalable/apps/io.github.mescon.redx.svg
+      # Install redx itself. --no-deps because PySide6 is in the runtime
+      # and send2trash already came in via the dep module above.
+      - pip3 install --verbose --exists-action=i --no-index --no-build-isolation
+        --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} --no-deps .
+
+      # Desktop entry: rename to match the app-id (Flathub requires the
+      # filename and the Icon= field both match the app-id reverse-DNS).
+      - install -Dm644 packaging/redx.desktop
+        /app/share/applications/io.github.mescon.redx.desktop
+      - sed -i 's|^Icon=redx$|Icon=io.github.mescon.redx|'
+        /app/share/applications/io.github.mescon.redx.desktop
+
+      # Icon: rename to match the app-id under the scalable theme dir.
+      - install -Dm644 redx/resources/redx.svg
+        /app/share/icons/hicolor/scalable/apps/io.github.mescon.redx.svg
+
+      # AppStream metainfo (mandatory for Flathub).
+      - install -Dm644 packaging/io.github.mescon.redx.metainfo.xml
+        /app/share/metainfo/io.github.mescon.redx.metainfo.xml
     sources:
       - type: dir
         path: ..

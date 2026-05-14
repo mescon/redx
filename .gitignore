@@ -30,3 +30,8 @@ packaging/pkg/
 packaging/*.pkg.tar.*
 packaging/redx-*.tar.gz
 packaging/*.log
+
+# Flatpak build artefacts (produced when running flatpak-builder)
+build-flatpak/
+.flatpak-builder/
+flatpak-build-cache/

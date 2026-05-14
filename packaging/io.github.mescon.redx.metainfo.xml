@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.mescon.redx</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LGPL-3.0-or-later</project_license>
+
+  <name>redx</name>
+  <summary>Find and delete empty directories</summary>
+
+  <description>
+    <p>
+      redx scans a folder recursively, classifies every subdirectory as
+      empty or not, and lets you delete the empty ones to trash (or
+      permanently) from a colour-coded tree view.
+    </p>
+    <p>
+      Custom rules control what counts as empty. Add glob patterns such
+      as *.tmp or Thumbs.db to the ignore list, and any directory whose
+      only files match those patterns is treated as empty. Zero-byte
+      files have their own toggle. Specific branches can be marked
+      Protected from a right-click menu so they survive a bulk delete.
+    </p>
+    <p>
+      A Linux port of the Windows utility RED (Remove-Empty-Directories).
+      Written in Python with PySide6 (Qt 6). Three delete modes:
+      simulate (no changes), move to trash (reversible), or permanent.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.mescon.redx.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Scan results: empty directories in red, mixed parents in gray</caption>
+      <image>https://raw.githubusercontent.com/mescon/redx/main/screenshots/main-window.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Filters tab: glob-style ignore patterns for files and directories</caption>
+      <image>https://raw.githubusercontent.com/mescon/redx/main/screenshots/filters-tab.png</image>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Utility</category>
+    <category>FileTools</category>
+  </categories>
+
+  <keywords>
+    <keyword>empty</keyword>
+    <keyword>directory</keyword>
+    <keyword>cleanup</keyword>
+    <keyword>trash</keyword>
+    <keyword>folder</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/mescon/redx</url>
+  <url type="bugtracker">https://github.com/mescon/redx/issues</url>
+  <url type="vcs-browser">https://github.com/mescon/redx</url>
+
+  <developer id="io.github.mescon">
+    <name translate="no">mescon</name>
+  </developer>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.0" date="2026-05-15">
+      <description>
+        <p>Initial public release.</p>
+        <ul>
+          <li>Recursive scanner with symlink shield and glob-pattern ignore lists</li>
+          <li>Tree view with per-directory empty / not-empty / protected colouring</li>
+          <li>Three delete modes: move to trash, permanent, simulate (dry run)</li>
+          <li>Right-click Protect on tree nodes; protection propagates to ancestors</li>
+          <li>Drag-and-drop folder onto the window to set scan target</li>
+          <li>Settings persist across sessions and survive ungraceful exits</li>
+          <li>Refuses to scan system mountpoints (/proc, /sys, /dev, etc.)</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+</component>
