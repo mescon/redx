@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — 2026-05-15
+## 0.1.0: 2026-05-15
 
 Initial public release.
 
@@ -41,7 +41,7 @@ Initial public release.
   filesystem can't smuggle a subdir past the guard.
 - Simulate mode maintains a per-run pretend-deleted set so post-order cascades
   match real-mode behaviour.
-- Settings persist on every Scan in addition to clean close — survives SIGTERM
+- Settings persist on every Scan in addition to clean close: survives SIGTERM
   and other ungraceful exits.
 - Install scripts use atomic rename (write to sibling tempfile + `mv`) for
   every XDG file they touch; inotify watchers never see a half-written

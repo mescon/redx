@@ -215,14 +215,14 @@ def _is_subdir(entry: Path) -> bool:
     take the misclassified children with it. We always fail-safe: any
     error raises True so we refuse to delete the parent.
     """
-    # Path.is_dir() — primary check.
+    # Path.is_dir(): primary check.
     try:
         if entry.is_dir():
             return True
     except OSError:
         return True
 
-    # lstat-based S_ISDIR — independent confirmation. If is_dir lied,
+    # lstat-based S_ISDIR: independent confirmation. If is_dir lied,
     # this catches it. lstat() doesn't follow symlinks, so a symlink to
     # a dir is correctly NOT classified as a subdir here (the caller
     # handled the symlink case separately).

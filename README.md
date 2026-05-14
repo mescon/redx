@@ -13,17 +13,17 @@ This is a Linux port of the Windows app [RED (Remove-Empty-Directories)](https:/
 
 ## Screenshots
 
-Scan results — empty directories in red, mixed parents in gray, count of "ignored" or "empty" files annotated next to the folder name:
+Scan results: empty directories in red, mixed parents in gray, count of "ignored" or "empty" files annotated next to the folder name:
 
 ![Scan result](screenshots/main-window.png)
 
-Filters — glob-style ignore patterns for files and directories, plus a "treat zero-byte files as empty" toggle:
+Filters: glob-style ignore patterns for files and directories, plus a "treat zero-byte files as empty" toggle:
 
 ![Filters tab](screenshots/filters-tab.png)
 
 ## Install
 
-### Arch, CachyOS, Manjaro, EndeavourOS, Garuda — via AUR
+### Arch, CachyOS, Manjaro, EndeavourOS, Garuda: via AUR
 
 ```bash
 yay -S redx       # or paru -S redx, or any AUR helper
@@ -31,7 +31,7 @@ yay -S redx       # or paru -S redx, or any AUR helper
 
 The package is at [aur.archlinux.org/packages/redx](https://aur.archlinux.org/packages/redx). It pulls the source at the latest tagged release, builds the wheel, runs the test suite during build, and installs system-wide via pacman.
 
-### Any other Linux — from source
+### Any other Linux: from source
 
 You need **Python 3.11 or newer**. No sudo, no system-wide pollution.
 
@@ -91,7 +91,7 @@ Then in the GUI: **Browse** > pick `tests/sandbox` > **Scan**.
 ## Other install options
 
 - **AppImage** (single portable file): see [`packaging/README.md`](packaging/README.md)
-- **Flatpak**: manifest at `packaging/io.github.mescon.redx.yml` (skeleton — needs `flatpak-pip-generator` polish before Flathub submission)
+- **Flatpak**: manifest at `packaging/io.github.mescon.redx.yml` (skeleton: needs `flatpak-pip-generator` polish before Flathub submission)
 - **PyPI**: not yet published
 
 ## Development

@@ -72,7 +72,7 @@ jobs:
 
       - name: pip-audit (CVE check on deps)
         # Upgrade pip first so CVE-2026-6357 (fixed in 26.1) drops out.
-        # CVE-2026-3219 is in pip itself with no upstream fix yet —
+        # CVE-2026-3219 is in pip itself with no upstream fix yet -
         # track it but don't let it block redx's own audits. Re-evaluate
         # whenever pip ships a fix and remove the --ignore-vuln then.
         run: |

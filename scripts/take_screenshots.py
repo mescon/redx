@@ -52,7 +52,7 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
 
     with tempfile.TemporaryDirectory() as td:
-        # Isolated QSettings — never write to the user's real config.
+        # Isolated QSettings: never write to the user's real config.
         qs = QSettings(str(Path(td) / "screenshot.ini"), QSettings.Format.IniFormat)
         app = QApplication(sys.argv)
         win = MainWindow(settings=Settings(qs))
@@ -75,7 +75,7 @@ def main() -> int:
         win._update_delete_button()
         win._status.showMessage("Done. 16 empty directories.")
 
-        # Redact the folder field — generic, looks like a real use case
+        # Redact the folder field: generic, looks like a real use case
         # without leaking the absolute path of whoever generated the
         # screenshot.
         DEMO_PATH = "~/Downloads/cleanup-target"

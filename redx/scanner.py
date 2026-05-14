@@ -201,7 +201,7 @@ class Scanner:
 
         Precedence: zero-byte (when the toggle is on) first, then
         pattern match, then real. A 0-byte file matched by ``*.jpg``
-        counts as ``empty`` rather than ``ignored`` — the literal
+        counts as ``empty`` rather than ``ignored``: the literal
         property is more specific than the user's name-based rule.
         """
         if self.config.ignore_empty_files:
@@ -256,7 +256,7 @@ def is_system_path(path: Path) -> bool:
 
     Resolves symlinks so that e.g. /var/run → /run still trips the
     guard. Returns False on OS errors (path doesn't exist, permission
-    denied) — those cases are handled elsewhere with their own messages.
+    denied): those cases are handled elsewhere with their own messages.
     """
     try:
         resolved = path.resolve(strict=False)

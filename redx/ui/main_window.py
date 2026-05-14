@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
 
         # About button lives on the tab-bar's right edge instead of in
         # a separate menubar. setCornerWidget puts a widget in the
-        # corner of QTabWidget's tab bar — visually it sits to the
+        # corner of QTabWidget's tab bar: visually it sits to the
         # right of the rightmost tab.
         about_btn = QPushButton("About")
         about_btn.setFlat(True)
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
     #   1. closeEvent: graceful window close (X button, app menu Quit).
     #   2. Every Scan: clicking Scan commits the current UI state, so we
     #      persist it then. This is what protects us against SIGTERM
-    #      (e.g. ``pkill redx`` from a reinstall script) — closeEvent
+    #      (e.g. ``pkill redx`` from a reinstall script): closeEvent
     #      doesn't run on SIGTERM, but anything the user has actually
     #      run a scan with is already on disk.
     #
