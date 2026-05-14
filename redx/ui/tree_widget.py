@@ -93,9 +93,9 @@ class ScanTreeWidget(QTreeWidget):
             return None
 
         label = str(node.path) if is_root else node.path.name
-        if node.empty_file_count > 0:
-            plural = "s" if node.empty_file_count > 1 else ""
-            label += f"   (contains {node.empty_file_count} empty file{plural})"
+        if node.ignored_file_count > 0:
+            plural = "s" if node.ignored_file_count > 1 else ""
+            label += f"   (contains {node.ignored_file_count} ignored file{plural})"
 
         item = QTreeWidgetItem()
         item.setText(0, label)

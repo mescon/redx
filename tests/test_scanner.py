@@ -39,7 +39,7 @@ def test_ignore_pattern_makes_dir_empty(tmp_path: Path) -> None:
     root = Scanner(Config(ignore_files=["*.txt"])).scan(tmp_path)
     a = root.children[0]
     assert a.status is NodeStatus.EMPTY
-    assert a.empty_file_count == 2
+    assert a.ignored_file_count == 2
 
 
 def test_one_real_file_blocks_emptiness(tmp_path: Path) -> None:

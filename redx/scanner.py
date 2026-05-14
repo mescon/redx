@@ -28,7 +28,12 @@ class ScanNode:
     status: NodeStatus = NodeStatus.NOT_EMPTY
     children: list["ScanNode"] = field(default_factory=list)
     error: str | None = None
-    empty_file_count: int = 0
+    # Count of files inside this directory that the scanner treated as
+    # "doesn't block emptiness" — i.e. files matched by ignore_files
+    # patterns, or zero-byte files when ignore_empty_files is True. The
+    # name "empty" used to live here and was misleading: a 4 MB JPEG
+    # matched by ``*.jpg`` is ignored, not empty.
+    ignored_file_count: int = 0
     is_protected: bool = False
     parent: "ScanNode | None" = field(default=None, repr=False)
 
@@ -132,7 +137,7 @@ class Scanner:
                 subdir_entries.append(entry)
                 continue
             if self._file_is_ignored(entry):
-                node.empty_file_count += 1
+                node.ignored_file_count += 1
             else:
                 contains_real_files = True
 
